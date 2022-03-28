@@ -134,7 +134,7 @@ if elem_solana_tpl >= 2000:
             lp = drvr.find_element(by = By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{i}]/div/div[1]/div/div[2]/div[1]').text
             lps.append(lp)
         for i in range(2,len(item_lists)+2):
-            profit = drvr.find_element(by = By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{i}]/div/div[4]/div[2]/div[1]/div[2]/span').text.replace('+$','')
+            profit = drvr.find_element(by = By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{i}]/div/div[4]/div[2]/div[1]/div[2]/span').text.replace('+$','').replace('$','')
             profits.append(profit)
         for i in range(2,len(item_lists)+2):
             equity = drvr.find_element(by = By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{i}]/div/div[4]/div[1]').text.replace('$','').replace(',','')
