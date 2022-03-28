@@ -31,7 +31,7 @@ from gspread_dataframe import set_with_dataframe
 
 #configの読み込み
 config_ini = configparser.ConfigParser()
-config_ini.read('config.ini', encoding='utf-8')
+config_ini.read('/Users/hitoshietoh/Documents/git/tulip/config.ini', encoding='utf-8')
 
 Seed_key = config_ini['DEFAULT']['Seed_key']
 Wallet_pass = config_ini['DEFAULT']['Wallet_pass']
