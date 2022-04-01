@@ -49,6 +49,8 @@ def send_line(notification_message):
     headers = {'Authorization': f'Bearer {line_notify_token}'}
     data = {'message': f'{notification_message}'}
     requests.post(line_notify_api, headers = headers, data = data)
+def wallet_submit():
+    drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div/div[1]/div/div[2]/div/button[2]').click()
 
 
 EXTENSION_PATH = Extension_path
@@ -77,7 +79,7 @@ if elem_solana_tpl >= 2000:
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[2]/div/textarea').send_keys(Seed_key)
     time.sleep(5)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
-    time.sleep(5)
+    time.sleep(30)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
     time.sleep(4)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[2]/input').send_keys(Wallet_pass)
@@ -106,6 +108,14 @@ if elem_solana_tpl >= 2000:
     time.sleep(1)
     if len(drvr.find_elements(by=By.CSS_SELECTOR, value='#root > div.app > div.app-body > div.infobar--error.infobar') )> 0 :
         send_line("REPAIR")
+        drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div[1]/div[2]/div[1]/button').click()
+        time.sleep(2)
+        drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/div/div[2]/div/div[2]/div/button').click()
+        time.sleep(2)
+        drvr.switch_to.window(drvr.window_handles[2])
+        time.sleep(2)
+        wallet_submit()
+
     else:
         #jsonファイルを使って認証情報を取得
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -115,9 +125,9 @@ if elem_solana_tpl >= 2000:
         gs = gspread.authorize(c)
 
         SPREADSHEET_KEY = Spreadsheet_key
-        worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet("2022-Mar")
+        worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet("2022-Apr")
         workbook = gs.open_by_key(SPREADSHEET_KEY)
-        worksheet = workbook.worksheet('2022-Mar')
+        worksheet = workbook.worksheet('2022-Apr')
 
         #tulipのprofitをスプレッドシートに反映
         drvr.switch_to.window(drvr.window_handles[0])
@@ -148,7 +158,7 @@ if elem_solana_tpl >= 2000:
         df['equities'] = equities
         df['profits'] = profits
         df['kills'] = kills
-        sheetName = '2022-Mar'
+        sheetName = '2022-Apr'
         sh = gs.open_by_key('1msYrZ3Q3BbWygD0FXyQs4dili4aYeuiF5mnqFhf1K5g')
         sh.values_append(sheetName,
                          {'valueInputOption': 'USER_ENTERED'},
@@ -202,9 +212,10 @@ if elem_solana_tpl >= 2000:
                 print(elem_tulip_ass_borrow)
                 elem_add_button = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[3]/button[2]').click()
                 time.sleep(1)
+                send_line("DEPOSIT")
                 #注文確定
                 drvr.switch_to.window(drvr.window_handles[2])
-                elem_phantom_submit = drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div/div[1]/div/div[2]/div/button[2]').click()
+                wallet_submit()
             elif elem_tulip_killer_buffer >= 19.33:
                 elem_tulip_coll = drvr.find_element(by=By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{rows}]/div/div[7]/div[1]/button').click()
                 #borrow moreのチェック
@@ -245,7 +256,7 @@ if elem_solana_tpl >= 2000:
                 #注文確定
                 drvr.switch_to.window(drvr.window_handles[2])
                 time.sleep(2)
-                elem_phantom_submit = drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div/div[1]/div/div[2]/div/button[2]').click()
+                wallet_submit()
                 drvr.switch_to.window(drvr.window_handles[0])
                 time.sleep(180)
 else:
