@@ -38,6 +38,11 @@ Wallet_pass = config_ini['DEFAULT']['Wallet_pass']
 Line_notify_token = config_ini['DEFAULT']['Line_notify_token']
 Extension_path = config_ini['DEFAULT']['Extension_path']
 Spreadsheet_key = config_ini['DEFAULT']['Spreadsheet_key']
+deposit_amount = config_ini['DEFAULT']['deposit_amount']
+sheet_name = config_ini['DEFAULT']['sheet_name']
+json_key = config_ini['DEFAULT']['json_key']
+binary_location = config_ini['DEFAULT']['binary_location']
+driver_path = config_ini['DEFAULT']['driver_path']
 
 
 # In[109]:
@@ -52,12 +57,18 @@ def send_line(notification_message):
 def wallet_submit():
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div/div[1]/div/div[2]/div/button[2]').click()
 
+#アラートの削除スクリプト
+script = """
+    elem_alert = document.getElementsByClassName("low-tps-warning")
+    elem_alert = Array.from( elem_alert )
+    elem_alert.forEach(elem_alert => elem_alert.remove())
+"""
 
 EXTENSION_PATH = Extension_path
 options = Options()
 options.add_extension(EXTENSION_PATH)
-options.binary_location = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-driver_path = "/usr/local/bin/chromedriver"
+options.binary_location = binary_location 
+driver_path = driver_path
 drvr = webdriver.Chrome(options = options, executable_path = driver_path)
 
 #solana tplチェック
@@ -72,6 +83,7 @@ if elem_solana_tpl >= 2000:
     site ="https://tulip.garden/vaults"
 
     drvr.get(site)
+    drvr.execute_script(script)
     time.sleep(2)
     drvr.switch_to.window(drvr.window_handles[1])
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/div/div[2]/button[2]').click()
@@ -79,18 +91,20 @@ if elem_solana_tpl >= 2000:
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[2]/div/textarea').send_keys(Seed_key)
     time.sleep(5)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
-    time.sleep(30)
+    time.sleep(20)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
     time.sleep(4)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[2]/input').send_keys(Wallet_pass)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[2]/div/div/input').send_keys(Wallet_pass)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/div/div/div[3]/span/input').click()
+    time.sleep(2)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
     time.sleep(3)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/main/div[2]/form/button').click()
     time.sleep(3)
     #tulipのタブに切り替え
     drvr.switch_to.window(drvr.window_handles[0])
+    drvr.execute_script(script)
     time.sleep(3)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div[1]/div[1]/div[3]/div[1]').click()
     time.sleep(3)
@@ -100,9 +114,11 @@ if elem_solana_tpl >= 2000:
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div/div[1]/div[2]/div/button[2]').click()
     time.sleep(3)
     drvr.switch_to.window(drvr.window_handles[0])
+    drvr.execute_script(script)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div[1]/div[1]/div[1]/div[3]/div/button/span/span').click()
     time.sleep(1)
     drvr.find_element(by=By.XPATH, value='//*[@id="root"]/div[1]/div[1]/div[1]/div[3]/div/div/button[2]').click()
+    drvr.execute_script(script)
     time.sleep(2)
      #repairの判定
     time.sleep(1)
@@ -119,15 +135,15 @@ if elem_solana_tpl >= 2000:
     else:
         #jsonファイルを使って認証情報を取得
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        c = ServiceAccountCredentials.from_json_keyfile_name('/Users/hitoshietoh//Documents/git/tulip/farming-345105-0f2eaff492a6.json', scope)
+        c = ServiceAccountCredentials.from_json_keyfile_name(json_key, scope)
 
         #認証情報を使ってスプレッドシートの操作権を取得
         gs = gspread.authorize(c)
 
         SPREADSHEET_KEY = Spreadsheet_key
-        worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet("2022-Apr")
+        worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet(sheet_name)
         workbook = gs.open_by_key(SPREADSHEET_KEY)
-        worksheet = workbook.worksheet('2022-Apr')
+        worksheet = workbook.worksheet(sheet_name)
 
         #tulipのprofitをスプレッドシートに反映
         drvr.switch_to.window(drvr.window_handles[0])
@@ -158,24 +174,28 @@ if elem_solana_tpl >= 2000:
         df['equities'] = equities
         df['profits'] = profits
         df['kills'] = kills
-        sheetName = '2022-Apr'
-        sh = gs.open_by_key('1msYrZ3Q3BbWygD0FXyQs4dili4aYeuiF5mnqFhf1K5g')
-        sh.values_append(sheetName,
-                         {'valueInputOption': 'USER_ENTERED'},
-                         {'values': df.values.tolist()}
-                         )
+        sheetName = sheet_name
+        sh = gs.open_by_key(Spreadsheet_key)
+        #スプレッドシート更新の時間指定
+        if datetime.datetime.now().hour == 18 or datetime.datetime.now().hour == 6:
+            sh.values_append(sheetName,
+                             {'valueInputOption': 'USER_ENTERED'},
+                             {'values': df.values.tolist()}
+                             )
         drvr.switch_to.window(drvr.window_handles[0])
+        drvr.execute_script(script)
         #killer bufferを基準に必要あればアジャスト
         rows = 1
         for i in range(0,len(item_lists)):
             rows += 1
             elem_tulip_killer_buffer = float(kills[i])
+            drvr.execute_script(script)
             if elem_tulip_killer_buffer <= 17.33:
                 drvr.find_element(by=By.XPATH, value=f'//*[@id="root"]/div[1]/div[2]/div/div[{i+2}]/div/div[7]/div[1]/button').click()
                 #デポジット
                 elem_tulip_input_usdc = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/section/div[1]/div[2]/div[2]/div[2]/input').clear()
                 time.sleep(0.5)
-                elem_tulip_input_usdc = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/section/div[1]/div[2]/div[2]/div[2]/input').send_keys(500)
+                elem_tulip_input_usdc = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/section/div[1]/div[2]/div[2]/div[2]/input').send_keys(deposit_amount)
                 #borrow moreのチェック
                 elem_tulip_borrowmore = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/section/div[1]/div[3]').click()
                 time.sleep(0.5)
@@ -237,7 +257,7 @@ if elem_solana_tpl >= 2000:
                 elem_tulip_ass_borrow = drvr.find_element(by=By.XPATH, value='/html/body/div[2]/div/div[1]/div/div/div[2]/section/div[1]/div[7]/div[3]/div[2]').text.split(' ')
                 #トークン価格を取得
                 token_price = float(elem_tulip_token_price.text.split(' ')[3].replace('$',''))
-                borrow_usdc = float(elem_tulip_borrow_amount.split(' ')[4].replace('$',''))
+                borrow_usdc = float(elem_tulip_borrow_amount.split(' ')[4].replace('$','').replace(',',''))
                 #ポジション差を計算
                 borrowed = borrow_usdc / token_price
                 #必要
@@ -258,7 +278,10 @@ if elem_solana_tpl >= 2000:
                 time.sleep(2)
                 wallet_submit()
                 drvr.switch_to.window(drvr.window_handles[0])
-                time.sleep(180)
+                send_line("3x")
+                time.sleep(10)
+        drvr.quit()
 else:
     #TPLが2000以下だとLINE通知
     send_line('TPL IS LOW')
+    drvr.quit()
